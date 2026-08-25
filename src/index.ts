@@ -1,0 +1,2 @@
+import { serve } from '@hono/node-server'; import { Hono } from 'hono'; import { config } from './config.js'; import { openDb } from './db.js'; import { apiRoutes } from './routes/api.js'; import { adminRoutes } from './routes/admin.js';
+const db=openDb(); const app=new Hono(); app.route('/',apiRoutes(db)); app.route('/',adminRoutes(db)); serve({fetch:app.fetch,port:config.port,hostname:config.host},info=>console.log(`privateeyes listening on http://${info.address}:${info.port}`));

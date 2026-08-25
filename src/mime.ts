@@ -1,0 +1,3 @@
+const map: Record<string, string> = { html:'text/html', htm:'text/html', md:'text/markdown', txt:'text/plain', json:'application/json', csv:'text/csv', pdf:'application/pdf', png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg', gif:'image/gif', webp:'image/webp', svg:'image/svg+xml', mp4:'video/mp4', webm:'video/webm', mov:'video/quicktime', mp3:'audio/mpeg', wav:'audio/wav', zip:'application/zip', gz:'application/gzip' };
+export function mimeFor(name: string) { return map[name.toLowerCase().split('.').pop() || ''] || 'application/octet-stream'; }
+export function isAttachment(mime: string) { return mime === 'application/zip' || mime === 'application/gzip' || mime === 'application/octet-stream'; }

@@ -1,0 +1,2 @@
+import { describe,it,expect } from 'vitest'; import { openDb } from '../src/db.js'; import { mintToken,verifyToken,rateLimit } from '../src/tokens.js';
+describe('rate limits',()=>{it('counts sliding windows',()=>{const db=openDb(':memory:'),raw=mintToken(db,'x'),token=verifyToken(db,raw).token!;db.prepare('INSERT INTO files (id,original_name,mime,bytes,sha256,r2_key,token_id,uploaded_at) VALUES (?,?,?,?,?,?,?,?)').run('a','a','text/plain',10,'a','f/a/a',token.id,new Date().toISOString());expect(rateLimit(db,token,10)).toBeNull();});});

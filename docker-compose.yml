@@ -1,0 +1,9 @@
+services:
+  privateeyes:
+    build: .
+    env_file: .env
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:8790:8790"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

@@ -1,0 +1,2 @@
+import { openDb } from '../src/db.js'; import { mintToken } from '../src/tokens.js';
+const args=process.argv.slice(2), value=(key:string)=>{const i=args.indexOf(key);return i>=0?args[i+1]:undefined}; const name=value('--name'); if(!name){console.error('usage: npm run mint -- --name NAME [--days N]');process.exit(1);} const token=mintToken(openDb(),name,value('--days')?Number(value('--days')):undefined); console.log(token);
