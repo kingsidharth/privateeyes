@@ -27,8 +27,8 @@ Prod container stays on Node 22 (better-sqlite3 native addon; boring and known-g
 
 ## Deploy (Hetzner box, `sid@ubuntu-app-prod`)
 ```sh
-rsync -a --exclude node_modules --exclude data --exclude .env . sid@ubuntu-app-prod:~/privateeyes/
-ssh sid@ubuntu-app-prod 'cd ~/privateeyes && docker compose up -d --build'
+rsync -a --exclude node_modules --exclude data --exclude .env . sid@ubuntu-app-prod:~/privateeyes/app/
+ssh sid@ubuntu-app-prod 'cd ~/privateeyes/app && docker compose up -d --build'
 ```
 `~/privateeyes/.env` on the box holds the real secrets (mirror kept locally as
 gitignored `.env.production`). `BIND_HOST=100.107.41.112` publishes the port on the
