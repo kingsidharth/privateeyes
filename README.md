@@ -1,25 +1,43 @@
 # privateeyes
 
-Tailnet-gated file drop for agents. It accepts authenticated multipart uploads and stores files in Cloudflare R2, returning public unguessable URLs.
-
-## Quickstart
-
-Copy `.env.example` to `.env`, set the R2 credentials and `ADMIN_PASSWORD`, then run:
+Tailnet-gated file drop. Agents on the Tailscale network upload a file, get back a public
+unguessable URL on `https://privateeyes.xperiments.app` (Cloudflare R2 + CDN).
 
 ```sh
-npm install
-npm run mint -- --name laptop-agent --days 30
-npm run dev
+curl -sF file=@plan.html -H "Authorization: Bearer $PRIVATEEYES_TOKEN" \
+  http://ubuntu-app-prod:8790/v1/upload
+# → { "url": "https://privateeyes.xperiments.app/f/Vq3xK9mA2rTe/plan.html", "deduped": false, ... }
 ```
 
-Upload with:
+Same file twice → same URL (sha256 dedupe). Max 100 MB. HTML renders inline; the public
+origin carries no cookies or auth — never serve anything privileged from it.
 
+## Endpoints (all tailnet-only except the CDN)
+- `POST /v1/upload` — multipart `file` (+ optional `name`)
+- `GET /v1/me` — quota/window usage · `GET /v1/files/:id` — metadata · `GET /healthz`
+- `/admin` — token mint/revoke, file browse/delete, stats (cookie login, `ADMIN_PASSWORD`)
+
+## Dev (Bun locally, Node 22 in prod)
 ```sh
-curl -F file=@report.pdf -H "Authorization: Bearer pe_..." http://127.0.0.1:8790/v1/upload
+bun install
+cp .env.example .env       # fill R2 creds
+bun run dev                # or: bun run test / build / mint -- --name my-agent
 ```
+Prod container stays on Node 22 (better-sqlite3 native addon; boring and known-good).
 
-`GET /healthz` is unauthenticated. `/v1/files/:id`, `/v1/files?sha256=...`, `/v1/me`, and uploads require the bearer token. Admin pages are under `/admin` and use the configured password.
+## Deploy (Hetzner box, `sid@ubuntu-app-prod`)
+```sh
+rsync -a --exclude node_modules --exclude data --exclude .env . sid@ubuntu-app-prod:~/privateeyes/
+ssh sid@ubuntu-app-prod 'cd ~/privateeyes && docker compose up -d --build'
+```
+`~/privateeyes/.env` on the box holds the real secrets (mirror kept locally as
+gitignored `.env.production`). `BIND_HOST=100.107.41.112` publishes the port on the
+Tailscale interface only — the upload API does not exist off the tailnet.
 
-## Deploy
+## Agent skill
+Symlink `skill/upload-file-to-user` → `~/.agents/skills/upload-file-to-user`.
+Agents set `PRIVATEEYES_TOKEN` and run `pe-upload <file>`.
 
-Use `docker compose up -d --build` with `.env` and persistent `./data`. Put the service behind Tailscale access controls. R2 credentials are read at startup; never expose them to clients.
+## Rate limits (per token, sliding windows)
+200 uploads / 2 GB per 8 h · 500 uploads / 5 GB per 24 h · optional lifetime quotas ·
+30-day default token expiry, instant revoke. Tokens stored as sha256 only.
