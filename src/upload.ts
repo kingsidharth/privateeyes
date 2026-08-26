@@ -233,7 +233,8 @@ async function streamUpload(
 
         try {
           await putFile(tempPath, r2Key, mime, disposition, signal);
-        } catch {
+        } catch (error) {
+          console.error(`r2 put failed key=${r2Key}:`, error);
           const outcome = clientAborted
             ? errorOutcome(400, 'upload_aborted', 'upload interrupted')
             : errorOutcome(502, 'storage_unavailable', 'could not store file');
