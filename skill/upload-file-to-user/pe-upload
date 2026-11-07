@@ -1,9 +1,28 @@
 #!/usr/bin/env bash
-# pe-upload <file> [name] — upload a file, print its public URL
+# pe-upload <file> [name] — upload a file, print its public URL.
+# Token: $PRIVATEEYES_TOKEN, else ~/.config/privateeyes/token.
+# Server: $PRIVATEEYES_URL (legacy: $PRIVATEEYES_HOST), else ~/.config/privateeyes/url, else the tailnet default.
 set -euo pipefail
-[ $# -ge 1 ] || { echo "usage: pe-upload <file> [name]" >&2; exit 1; }
-: "${PRIVATEEYES_TOKEN:?set PRIVATEEYES_TOKEN}"
-HOST="${PRIVATEEYES_HOST:-http://ubuntu-app-prod:8790}"
-ARGS=(-sf -F "file=@$1" -H "Authorization: Bearer $PRIVATEEYES_TOKEN")
+[ $# -ge 1 ] || { echo "usage: pe-upload <file> [name]" >&2; exit 2; }
+[ -f "$1" ] && [ -r "$1" ] || { echo "pe-upload: cannot read file: $1" >&2; exit 1; }
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/privateeyes"
+conf() { if [ -r "$CONFIG_DIR/$1" ]; then tr -d '[:space:]' <"$CONFIG_DIR/$1"; fi; }
+
+TOKEN="${PRIVATEEYES_TOKEN:-$(conf token)}"
+[ -n "$TOKEN" ] || {
+  echo "pe-upload: no token. Set PRIVATEEYES_TOKEN, or save it to $CONFIG_DIR/token (chmod 600)." >&2
+  exit 1
+}
+URL="${PRIVATEEYES_URL:-${PRIVATEEYES_HOST:-$(conf url)}}"
+URL="${URL:-http://ubuntu-app-prod:8790}"
+
+ARGS=(-sS --connect-timeout 10 -w '\n%{http_code}' -F "file=@$1" -H @-)
 [ $# -ge 2 ] && ARGS+=(-F "name=$2")
-curl "${ARGS[@]}" "$HOST/v1/upload" | { command -v jq >/dev/null && jq -r .url || cat; }
+# The auth header goes through stdin so the token never shows up in `ps`.
+resp=$(printf 'Authorization: Bearer %s\n' "$TOKEN" | curl "${ARGS[@]}" "${URL%/}/v1/upload") ||
+  { echo "pe-upload: cannot reach $URL (is Tailscale up?)" >&2; exit 1; }
+code="${resp##*$'\n'}"
+body="${resp%$'\n'*}"
+[[ "$code" == 2* ]] || { echo "pe-upload: HTTP $code from $URL: $body" >&2; exit 1; }
+if command -v jq >/dev/null; then jq -r .url <<<"$body"; else printf '%s\n' "$body"; fi
