@@ -36,7 +36,10 @@ Tailscale interface only — the upload API does not exist off the tailnet.
 
 ## Agent skill
 Symlink `skill/upload-file-to-user` → `~/.agents/skills/upload-file-to-user`.
-Agents set `PRIVATEEYES_TOKEN` and run `pe-upload <file>`.
+Agents run `pe-upload <file>`. Token: `PRIVATEEYES_TOKEN`, else `~/.config/privateeyes/token`;
+server: `PRIVATEEYES_URL`, else `~/.config/privateeyes/url`, else `http://ubuntu-app-prod:8790`.
+Mint one non-interactively on the box: `docker exec app-privateeyes-1 node dist/scripts/mint.js --name <name> [--days N]`
+(prints only the token; no `--days` means no expiry).
 
 ## Rate limits (per token, sliding windows)
 200 uploads / 2 GB per 8 h · 500 uploads / 5 GB per 24 h · optional lifetime quotas ·
